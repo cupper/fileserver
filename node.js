@@ -3,6 +3,9 @@ var MIME = require("mime");
 var URL = require("url");
 var FS = require("fs");
 
+var INDEX_PAGE = '/';
+var ROOT_DIRECTORY = "/~";
+
 /*
  * Keeps handlers for GET, PUT, DELETE methonds 
  */
@@ -33,6 +36,16 @@ function urlToPath(url) {
   return STORAGE + decodeURIComponent(path);
 }
 
+function returnIndexPage(response) {
+  FS.readFile("index.html", "utf8", function (error, text) {
+    if (error) {
+      response.end("Sorry can't find index page: " + error.toString());
+    } else {
+      response.end(text);
+    }
+  });
+}
+
 HTTP.createServer(function (request, response) {
   var method = request.method;
   console.log("[" + method + "] " + request.url);
@@ -48,7 +61,11 @@ HTTP.createServer(function (request, response) {
     }
   }
 
-  if (METHODS.hasOwnProperty(method)) {
+  if (request.url === INDEX_PAGE) {
+    returnIndexPage(response);
+  } else if (request.url === ROOT_DIRECTORY) {
+    METHODS.GET(STORAGE, respond, request);
+  } else if (METHODS.hasOwnProperty(method)) {
     METHODS[method](urlToPath(request.url), respond, request);
   } else {
     respond(405, methodNotAlloved(method));
@@ -71,7 +88,7 @@ METHODS.GET = function (path, respond) {
         if (error) {
           respond(500, error.toString());
         } else {
-          respond(200, files.join("\n"));
+          respond(200, files.join("<br>"));
         }
       });
     } else {
